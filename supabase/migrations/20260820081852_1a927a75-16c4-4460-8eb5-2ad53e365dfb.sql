@@ -1,0 +1,5 @@
+ALTER TABLE public.income_entries ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.expense_entries ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.assets ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.recurring_incomes ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
+ALTER TABLE public.recurring_expenses ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'USD';
