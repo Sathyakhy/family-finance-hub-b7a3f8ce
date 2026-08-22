@@ -12,27 +12,24 @@ export const signInWithIdentifier = createServerFn({ method: "POST" })
     const url = process.env["SUPABASE_URL"]!;
     const publishable = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
 
-    let email = data.identifier;
-
-    if (!email.includes("@")) {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-      // Use maybeSingle to get one profile efficiently
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("id")
-        .eq("username", email.toLowerCase())
-        .maybeSingle();
-
-      if (!profile) return { error: "Invalid credentials" as const, session: null };
-
-      const { data: userRes } = await supabaseAdmin.auth.admin.getUserById(profile.id);
-      if (!userRes?.user?.email) return { error: "Invalid credentials" as const, session: null };
-      email = userRes.user.email;
-    }
-
     const client = createClient(url, publishable, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
+
+    let email = data.identifier;
+
+    if (!email.includes("@")) {
+      // Resolves the email only when the password matches (no enumeration).
+      const { data: resolved, error: rpcError } = await client.rpc("email_for_login", {
+        _username: email.toLowerCase(),
+        _password: data.password,
+      });
+
+      if (rpcError || !resolved) {
+        return { error: "Invalid credentials" as const, session: null };
+      }
+      email = resolved as string;
+    }
 
     const { data: signIn, error } = await client.auth.signInWithPassword({
       email,
@@ -43,8 +40,5 @@ export const signInWithIdentifier = createServerFn({ method: "POST" })
       return { error: "Invalid credentials" as const, session: null };
     }
 
-    return {
-      error: null,
-      session: signIn.session,
-    };
+    return { error: null, session: signIn.session };
   });
